@@ -1,0 +1,7 @@
+dataset/
+
+checkpoints/
+
+pretrained/
+
+pretrained/CROMA_large.pt
