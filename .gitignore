@@ -5,3 +5,5 @@ checkpoints/
 pretrained/
 
 pretrained/CROMA_large.pt
+
+fcnn_test
