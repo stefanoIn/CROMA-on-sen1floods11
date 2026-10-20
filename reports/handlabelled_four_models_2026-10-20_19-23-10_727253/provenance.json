@@ -1,0 +1,113 @@
+{
+  "models": {
+    "authors": "Authors FCN (v0v0)",
+    "mine": "My FCN (v1.1)",
+    "croma": "CROMA + FCN",
+    "otsu": "Otsu"
+  },
+  "authors_run": "runs/sen1floods11_reproduction/authors_hand_labeled/test_5e4_handlabeled_0_8_0.43163052201271057_v1.1_2026-10-20_18-31-06_611597_d03e130b",
+  "personal_fcn_run": "fcnn_test/notebook_results/mine_train_v1_1_test_v1_1",
+  "croma_run": "runs/croma_sen1floods11/own_preprocessing/test_croma_own_preprocessing_float_2026-10-20_16-05-26_695085_48942d00_2026-10-20_18-17-34_175070_8956ee0b",
+  "otsu": "dataset/sen1floods11_hand_labeled_only/HandLabeled/S1OtsuLabelHand",
+  "test_version": "v1.1",
+  "authors_version_note": "v0v0 is the user's notebook name; authors checkpoint was trained on dataset v1.0",
+  "personal_checkpoint": "fcnn_test/fcnn_checkpoints/mine_train_v1_1/Sen1Floods11_hand_labeled_epoch051_valIoU0.539782.cp",
+  "personal_checkpoint_sha256": "d54e9e8eaa460bee4d5f3651dc545ff75ceb1722b29d7868210a9c3f070c673b",
+  "figures": [
+    {
+      "file": "01_handlabelled_scores",
+      "caption": "Exactly four methods. Shared valid pixels exclude Otsu missing predictions for all models. This is not the legacy notebook label-conversion metric; native-mask scores are also available in summary.csv.",
+      "selection": null
+    },
+    {
+      "file": "02_handlabelled_categories",
+      "caption": "PW, FW and AW evaluated with the same valid-pixel mask for the four methods; different categories have different eligible images.",
+      "selection": null
+    },
+    {
+      "file": "03_non_bol_Paraguay_232281",
+      "caption": "Full 512x512 scene Paraguay_232281. Only the four requested methods. RGB is contextual; models use SAR.",
+      "selection": {
+        "chip": "Paraguay_232281",
+        "split": "non_bol",
+        "seed": 42,
+        "rule": "uniform label-only selection: >=10000 common-valid pixels and >=1000 water pixels; no score ranking"
+      }
+    },
+    {
+      "file": "04_non_bol_Ghana_866994",
+      "caption": "Full 512x512 scene Ghana_866994. Only the four requested methods. RGB is contextual; models use SAR.",
+      "selection": {
+        "chip": "Ghana_866994",
+        "split": "non_bol",
+        "seed": 42,
+        "rule": "uniform label-only selection: >=10000 common-valid pixels and >=1000 water pixels; no score ranking"
+      }
+    },
+    {
+      "file": "05_non_bol_Spain_6095801",
+      "caption": "Full 512x512 scene Spain_6095801. Only the four requested methods. RGB is contextual; models use SAR.",
+      "selection": {
+        "chip": "Spain_6095801",
+        "split": "non_bol",
+        "seed": 42,
+        "rule": "uniform label-only selection: >=10000 common-valid pixels and >=1000 water pixels; no score ranking"
+      }
+    },
+    {
+      "file": "06_non_bol_Sri-Lanka_534068",
+      "caption": "Full 512x512 scene Sri-Lanka_534068. Only the four requested methods. RGB is contextual; models use SAR.",
+      "selection": {
+        "chip": "Sri-Lanka_534068",
+        "split": "non_bol",
+        "seed": 42,
+        "rule": "uniform label-only selection: >=10000 common-valid pixels and >=1000 water pixels; no score ranking"
+      }
+    },
+    {
+      "file": "07_bol_Bolivia_195474",
+      "caption": "Full 512x512 scene Bolivia_195474. Only the four requested methods. RGB is contextual; models use SAR.",
+      "selection": {
+        "chip": "Bolivia_195474",
+        "split": "bol",
+        "seed": 42,
+        "rule": "uniform label-only selection: >=10000 common-valid pixels and >=1000 water pixels; no score ranking"
+      }
+    },
+    {
+      "file": "08_bol_Bolivia_314919",
+      "caption": "Full 512x512 scene Bolivia_314919. Only the four requested methods. RGB is contextual; models use SAR.",
+      "selection": {
+        "chip": "Bolivia_314919",
+        "split": "bol",
+        "seed": 42,
+        "rule": "uniform label-only selection: >=10000 common-valid pixels and >=1000 water pixels; no score ranking"
+      }
+    },
+    {
+      "file": "09_closeup_non_bol",
+      "caption": "Four-method error comparison in one common crop. Diagnostic disagreement crop, not a representative performance estimate.",
+      "selection": {
+        "split": "non_bol",
+        "chip": "Paraguay_232281",
+        "top": 32,
+        "left": 0,
+        "size": 128,
+        "rule": "maximum four-model valid-pixel disagreement on a 32-pixel search grid"
+      }
+    },
+    {
+      "file": "10_closeup_bol",
+      "caption": "Four-method error comparison in one common crop. Diagnostic disagreement crop, not a representative performance estimate.",
+      "selection": {
+        "split": "bol",
+        "chip": "Bolivia_195474",
+        "top": 96,
+        "left": 320,
+        "size": 128,
+        "rule": "maximum four-model valid-pixel disagreement on a 32-pixel search grid"
+      }
+    }
+  ],
+  "selection_seed": 42
+}
