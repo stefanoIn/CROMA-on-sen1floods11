@@ -1,17 +1,29 @@
+﻿# Local datasets, pretrained weights, and generated experiment outputs
 dataset/
-
+datasets/
 checkpoints/
-
 pretrained/
-
-pretrained/CROMA_large.pt
-
-fcnn_test
-
 runs/
+reports/
+fcnn_test/
 
+# Downloaded archives and model binaries
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+
+# Python environments and caches
+.venv/
+venv/
 __pycache__/
-
 *.py[cod]
-
+.pytest_cache/
 .ipynb_checkpoints/

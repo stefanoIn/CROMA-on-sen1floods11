@@ -1,0 +1,20 @@
+{
+  "pangaea_revision": "ca19b837a16797cd809225225b671473c7c93768",
+  "scope": "SAR-only PANGAEA alignment; not a claimed reproduction of the headline result",
+  "unit_tests_passed": 6,
+  "real_pretrained_smoke": {
+    "device": "cpu",
+    "batch_size": 8,
+    "precision": "fp32",
+    "optimizer_step": true,
+    "checkpoint_reload_exact": true
+  },
+  "gpu_memory_tested": false,
+  "dataset_files_modified": false,
+  "runtime_adaptations": [
+    "BatchNorm2d for one process/GPU",
+    "num_workers=0 for Windows notebooks",
+    "ignore label remapped from -1 to 255"
+  ],
+  "other_experiment_modules_modified": false
+}
