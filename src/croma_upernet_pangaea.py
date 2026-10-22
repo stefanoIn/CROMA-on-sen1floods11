@@ -35,6 +35,43 @@ def load_split_paths(csv_file, x_dir, y_dir):
     return pairs
 
 
+
+def filter_labeled_training_pairs(pairs):
+    kept, excluded = [], []
+    for pair in pairs:
+        with rasterio.open(pair[1]) as src:
+            mask = src.read(1)
+        if not np.isin(mask, [-1, 0, 1, 255]).all():
+            raise ValueError(f"Unexpected labels in {pair[1]}")
+        (kept if np.isin(mask, [0, 1]).any() else excluded).append(pair)
+    if not kept:
+        raise ValueError("No labeled training images remain.")
+    return kept, excluded
+
+
+def random_labeled_crop(image, mask, crop_size, max_attempts=32):
+    height, width = image.shape[-2:]
+    if min(height, width) < crop_size or mask.shape != (height, width):
+        raise ValueError("Expected aligned image/mask at least as large as the crop.")
+    valid = np.isin(mask, [0, 1])
+    if not valid.any():
+        raise ValueError("Fully ignored image must be excluded from training.")
+    for _ in range(max_attempts):
+        top = torch.randint(0, height - crop_size + 1, (1,)).item()
+        left = torch.randint(0, width - crop_size + 1, (1,)).item()
+        if valid[top:top+crop_size, left:left+crop_size].any():
+            break
+    else:
+        # Bounded fallback: choose a valid pixel and a random crop containing it.
+        coords = np.argwhere(valid)
+        y, x = coords[torch.randint(len(coords), (1,)).item()]
+        top = torch.randint(max(0, int(y)-crop_size+1),
+                            min(int(y), height-crop_size)+1, (1,)).item()
+        left = torch.randint(max(0, int(x)-crop_size+1),
+                             min(int(x), width-crop_size)+1, (1,)).item()
+    return image[:, top:top+crop_size, left:left+crop_size], mask[top:top+crop_size, left:left+crop_size]
+
+
 class Sen1Floods11Dataset(Dataset):
     def __init__(self, data_list, preprocess_func):
         self.data_list = data_list

@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / 'src'))
 from croma_upernet_pangaea import (
     UPerNetHead, CROMAUPerNet, prepare_sample, PREPROCESSING,
     latest_completed_checkpoint, SCHEMA, Sen1Floods11Dataset,
+    random_labeled_crop, filter_labeled_training_pairs,
 )
 from use_croma import ViT, get_2dalibi
 
@@ -49,6 +50,38 @@ class PangaeaProtocolTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         torch.set_num_threads(2)
+
+
+    def test_crop_rejects_ignored_and_preserves_land_supervision(self):
+        image = np.arange(2*16*16,dtype=np.float32).reshape(2,16,16)
+        mask = np.full((16,16),255,dtype=np.int64)
+        with self.assertRaises(ValueError):
+            random_labeled_crop(image,mask,8)
+        mask[15,15] = 0
+        torch.manual_seed(234)
+        for _ in range(20):
+            crop,label = random_labeled_crop(image,mask,8,max_attempts=0)
+            self.assertEqual(crop.shape,(2,8,8))
+            self.assertEqual(int((label==0).sum()),1)
+            self.assertEqual(crop[0][label==0].item(),image[0,15,15])
+        dry = np.zeros((16,16),dtype=np.int64)
+        _, label = random_labeled_crop(image,dry,8)
+        self.assertTrue((label==0).all())
+
+    def test_training_filter_keeps_valid_dry_images(self):
+        import rasterio
+        from rasterio.transform import from_origin
+        with tempfile.TemporaryDirectory() as td:
+            pairs = []
+            for name,value in [('ignored',-1),('dry',0),('water',1)]:
+                path=Path(td)/(name+'.tif')
+                with rasterio.open(path,'w',driver='GTiff',height=2,width=2,count=1,
+                                   dtype='int16',transform=from_origin(100,100,10,10)) as dst:
+                    dst.write(np.full((2,2),value,dtype='int16'),1)
+                pairs.append((path,path))
+            kept,excluded=filter_labeled_training_pairs(pairs)
+            self.assertEqual(kept,pairs[1:])
+            self.assertEqual(excluded,pairs[:1])
 
     def test_decoder_matches_upstream_eval_and_training(self):
         upstream = upstream_classes()
@@ -136,8 +169,12 @@ class PangaeaProtocolTests(unittest.TestCase):
         values = iter([dict(miou=0.80,water_iou=0.60,val_loss=0.2),
                        dict(miou=0.79,water_iou=0.70,val_loss=0.1)])
         with tempfile.TemporaryDirectory() as td:
+            from segmentation_metrics import METRIC_KEYS, clean_json, metric_table
+            import pandas as pd
             namespace = dict(torch=torch, Path=Path, datetime=datetime, uuid4=uuid4, json=json,
-                EXPERIMENT_NAME=td, NOTEBOOK_PATH=str(path), SCHEMA=SCHEMA,
+                METRIC_KEYS=METRIC_KEYS,clean_json=clean_json,metric_table=metric_table,pd=pd,display=lambda *args:None,
+                EXPERIMENT_NAME=td, NOTEBOOK_PATH=str(path), SCHEMA=SCHEMA, excluded_unlabeled_train=[], excluded_missing_sar_train=[],
+                train_input_audit=pd.DataFrame(),val_input_audit=pd.DataFrame(),
                 PANGAEA_REVISION='test', pretrained_path='pretrained/CROMA_large.pt',
                 HEAD_CONFIG={}, PREPROCESSING=PREPROCESSING, CROP_SIZE=120, EPOCHS=2,
                 EVAL_INTERVAL=1, SEED=234, BATCH_SIZE=8, IGNORE_INDEX=255, LR=1e-4,
