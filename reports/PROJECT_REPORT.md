@@ -2,7 +2,7 @@
 
 Snapshot: 2 November 2026. This report describes the current files and locally saved experiments. It is readable on GitHub without downloading the datasets, checkpoints or prediction images.
 
-The project evaluates **CROMA Large on Sen1Floods11 flood segmentation** with Sentinel-1 radar (S1), Sentinel-2 optical imagery (S2), and joint S1+S2 input. There are **15 active notebooks, 13 training records and 12 evaluation records**. These include interrupted training and repeated evaluations, not 25 independent completed experiments. TerraMind Large weights are downloaded; its experiment notebooks and results are not yet implemented.
+The project evaluates **CROMA Large on Sen1Floods11 flood segmentation** with Sentinel-1 radar (S1), Sentinel-2 optical imagery (S2), and joint S1+S2 input. There are **17 active notebooks (15 CROMA and 2 TerraMind), 13 CROMA training records and 12 CROMA evaluation records**. These include interrupted training and repeated evaluations, not 25 independent completed experiments. TerraMind Large weights are downloaded and its S1 FCN training/evaluation notebooks are now prepared. No TerraMind training or full-test results are available yet.
 
 The main UPerNet comparison reaches **79.78% mIoU / 64.94% water IoU with S1**, **89.88% / 82.40% with S2**, and **88.46% / 79.96% with S1+S2**, on the non-Bolivia test set. The joint model slightly exceeds S2 on the separate Bolivia test. These are individual runs, not multi-seed averages.
 
@@ -12,6 +12,7 @@ The main UPerNet comparison reaches **79.78% mIoU / 64.94% water IoU with S1**, 
 - [Work completed](#work-completed)
 - [Notebooks and protocols](#notebooks-and-protocols)
 - [How CROMA and UPerNet connect](#how-croma-and-upernet-connect)
+- [TerraMind S1 FCN addition](#terramind-s1-fcn-addition)
 - [Every module in src](#every-module-in-src)
 - [Saved files and metric definitions](#saved-files-and-metric-definitions)
 - [Selected UPerNet results](#selected-upernet-results)
@@ -33,7 +34,7 @@ pretrained/
     sen1floods11_authors/            Dataset authors' released weights
 experiments/sen1floods11/
     croma/<experiment>/             Active training/evaluation notebooks
-    terramind/                      Local placeholder for future work
+    terramind/fcn_s1/               TerraMind S1 FCN training/evaluation
 runs/sen1floods11/
     croma/<experiment>/<run>/       Saved training or evaluation execution
     authors_baseline/               Existing author-model evaluations
@@ -61,7 +62,7 @@ Weakly labelled data are present locally. Results summarized here are hand-label
 4. Added precision/recall/F1, omission/commission, confusion counts, per-chip/regional analysis, AW/PW/FW, prediction panels and input-quality diagnostics.
 5. Investigated modality differences, fine versus coarse predictions, ignored labels and missing acquisitions. The metrics establish performance differences; their causes remain partly unresolved.
 6. Reorganized paths into dataset/model/experiment folders. The local `reports/folder_reorganization.json` records mappings and integrity verification. Data, checkpoints, metric values and notebook cell structure were preserved; active path references/root discovery were updated.
-7. Downloaded TerraMind Large weights and reserved its folders. There are no TerraMind training/evaluation results yet.
+7. Added TerraMind v1 Large S1 FCN training/evaluation notebooks based on the existing CROMA S1 FCN notebooks. Verified local checkpoint compatibility, a real-input CPU forward/gradient check, and evaluation artifact generation. Full training and testing remain to be run; no TerraMind performance results are claimed.
 
 Creating this report did not modify notebook code, recompute metrics, train models or run inference.
 
@@ -129,6 +130,49 @@ Indices are stored as `[3, 5, 7, 11]` in zero-based code. Only the last selected
 UPerNet first turns equal-resolution transformer maps into a pyramid using scale factors 4, 2, 1 and 0.5. Pyramid pooling adds context to the deepest map. Lateral projections and top-down fusion combine the four levels; convolutions and a classifier produce logits, interpolated back to crop size. This implementation requires four inputs.
 
 This gives more contextual/spatial information to the decoder than a final-grid classifier, but cannot restore absent input information. S2 versus joint UPerNet also changes the representation stream and feature depths: it is not a controlled comparison changing only the presence of SAR.
+
+## TerraMind S1 FCN addition
+
+Added on 2 November 2026. This adds TerraMind to the existing S1 comparison without retraining or changing the CROMA or authors' experiments.
+
+| New notebook | Role |
+| --- | --- |
+| [01_terramind_on_sen1floods11_training.ipynb](../experiments/sen1floods11/terramind/fcn_s1/01_terramind_on_sen1floods11_training.ipynb) | Train an FCN head on frozen TerraMind v1 Large S1 features |
+| [02_terramind_on_sen1floods11_test.ipynb](../experiments/sen1floods11/terramind/fcn_s1/02_terramind_on_sen1floods11_test.ipynb) | Load a compatible checkpoint and evaluate non-Bolivia and Bolivia separately |
+
+The notebooks retain the CROMA S1 FCN templates' cell counts (30 training, 31 testing), IDs, ordering and general workflow. Saved template outputs were cleared. Existing headings were adapted to TerraMind; no extra Markdown cells or external Python helper files were added. Model-specific definitions are in the notebooks, which reuse the existing metrics and visualization modules. The README now links the notebooks and documents setup.
+
+### Settings retained for comparison
+
+- Same S1 VV/VH acquisitions, hand-labelled masks and official CSV splits: 252 train, 89 validation, 90 non-Bolivia test and 15 Bolivia test observations. Strict checks reject missing pairs, duplicate IDs and split overlap rather than silently dropping observations.
+- Same 120 x 120 random training crops and horizontal/vertical flips, preserving split membership. All-ignore batches are skipped; there is no added water oversampling.
+- Frozen pretrained encoder and the same FCN head: 1024 input channels, 256 hidden channels, GroupNorm with 16 groups and two output classes.
+- 100 epochs, batch size 16, weighted cross entropy `[1, 8]`, AdamW with learning rate `5e-4` and weight decay `0.01`, and cosine warm restarts stepped after optimizer updates.
+- Validation every epoch and checkpoint selection by validation water IoU, following the original S1 FCN notebook rather than the UPerNet protocol.
+- Full-image evaluation using 120-pixel windows, stride 60 and mean overlapping logits. Labels are not resized.
+- Same pooled segmentation metrics, separate Bolivia/non-Bolivia reporting, historical AW/PW/FW rules, RGB/reference/prediction/error panels and training plots.
+
+### Necessary model-specific differences
+
+TerraTorch supplies the TerraMind architecture; training and evaluation remain ordinary PyTorch loops. The notebooks pin `terratorch==1.2.5` and load `pretrained/terramind/TerraMind_v1_large.pt` locally. Every tensor required by the selected S1 encoder must be present with the expected shape; unused modalities and the generative decoder are excluded. No model-weight download is performed by the notebooks.
+
+TerraMind uses its native S1GRD normalization: VV/VH means `[-12.599, -20.293]` and standard deviations `[5.195, 5.890]`. Raw data are already in dB; the CROMA clipping/per-image normalization is not applied. Nonfinite raw values are replaced by zero. These statistics follow the [official TerraMind Sen1Floods11 configuration](https://github.com/IBM/terramind/blob/main/configs/terramind_v1_base_sen1floods11.yaml).
+
+TerraMind has 16-pixel patches. Each 120-pixel crop is padded on its right/bottom edges to 128 using replicated boundary values. The decoder logits are interpolated to the padded extent and then cropped back to 120. The model uses the final, normalized block-24 features, giving an 8 x 8 token grid versus CROMA's 15 x 15 grid. The checkpoint's positional embeddings are retained and interpolated by the architecture for the input size.
+
+To limit memory use, only the frozen encoder is processed in chunks of four images; the FCN still receives the full training batch. These differences are recorded explicitly. The comparison evaluates the concrete pretrained-model pipelines; it does not isolate architecture from normalization, pretraining or feature resolution. Existing author/CROMA results remain historical observations under their recorded conditions.
+
+### Outputs and provenance
+
+Outputs are created under `runs/sen1floods11/terramind/fcn_s1/`, with separate training and evaluation runs. Training records seed 42, split membership and CSV hashes, package versions, pretrained-checkpoint SHA-256, preprocessing, optimizer/scheduler settings and the selected checkpoint. Independent crop and loader generators are reset before training.
+
+Evaluation automatically selects the latest completed compatible training run, or accepts an explicit `CHECKPOINT_PATH`. It verifies the checkpoint schema, preprocessing, split manifest and pretrained-weight hash before loading the FCN state. It saves prediction rasters, split metrics, combined JSON/CSV summaries, per-chip/regional scores, AW/PW/FW CSVs and plots. It also saves a comparison table against the latest existing CROMA S1 FCN evaluation, retaining source paths and checking valid-pixel counts. Matching pixel counts alone do not establish identical training provenance; this table does not rerun CROMA or the authors' model.
+
+### Verification and remaining execution
+
+Verified notebook syntax and preserved cell structure; confirmed the four split counts and non-overlap. Using the actual TerraTorch 1.2.5 wheel's core model modules and local checkpoint, a real-input CPU smoke check produced finite 120 x 120 logits and gradients only for the FCN head. A separate synthetic-prediction check verified tiled coverage, ignored-label handling, raster output, metric JSON/CSVs, regional reporting and AW/PW/FW masks. These checks are not benchmark results.
+
+TerraTorch is not installed in the existing notebook environment. For model verification, its core modules were loaded in isolation from a temporary wheel, bypassing unrelated package imports; a full installed-package notebook run has not been verified. Before running, execute `%pip install terratorch==1.2.5` in the intended notebook kernel and restart it. Then run the training notebook followed by testing. No full training, full-test inference or TerraMind performance measurement has been performed.
 
 ## Every module in src
 
@@ -454,7 +498,7 @@ Implementation provenance is recorded in `run.json` and [the UPerNet module](../
 
 Keep these runs as documented baselines. To isolate causes, fix data membership, preprocessing, head, sampling, inference and checkpoint selection; vary one factor at a time and repeat over seeds. Useful questions include optical feature depth, alternative fusion, and performance by event, water extent and input coverage. Choose settings on training/validation data and reserve test data for evaluation.
 
-TerraMind can be compared using explicitly matched conditions. Its downloaded weights still need an architecture loader, correct bands/normalization, a verified feature-to-head connection and evaluation notebooks. Weak-label/data-scarcity work remains a possible next study, not an existing outcome.
+The TerraMind S1 FCN notebooks are now ready for the next experiment, with model-specific normalization and patch handling documented above. Full training/evaluation remains pending. Weak-label/data-scarcity work remains a possible next study, not an existing outcome.
 
 ## Reproducibility and GitHub
 
@@ -470,6 +514,6 @@ To trace a result, start at evaluation `run.json`, follow its checkpoint to the 
 
 Some older references were broken before reorganization. The local migration audit retains them; uncertain train/test links remain flagged rather than inferred.
 
-This report, README, notebooks and source are intended for Git. Data, model binaries, generated runs, prediction rasters, large archives and other local reports remain excluded; `.gitignore` makes an exception for this report only. A GitHub clone documents the results but does not contain the local data/checkpoints needed to rerun them. Empty TerraMind placeholder directories are not preserved by Git until they contain tracked files.
+This report, README, notebooks and source are intended for Git. Data, model binaries, generated runs, prediction rasters, large archives and other local reports remain excluded; `.gitignore` makes an exception for this report only. A GitHub clone documents the results but does not contain the local data/checkpoints needed to rerun them. The two TerraMind experiment notebooks are intended to be tracked; their generated runs remain excluded.
 
-No dependency installation, notebook/source change, training, inference, metric recomputation or metric-policy change was performed to create this document.
+This report update documents the TerraMind notebook addition and its limited verification. It does not change the existing CROMA/authors notebooks, source modules, saved results or metric policies. All numerical performance tables above still refer to the previously saved CROMA runs.

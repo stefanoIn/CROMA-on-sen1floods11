@@ -26,7 +26,7 @@ experiments/
       upernet_s2/
       upernet_s1s2/
       exploration/
-    terramind/                     # Reserved for the next experiment
+    terramind/fcn_s1/              # TerraMind S1 FCN training and evaluation
 runs/
   sen1floods11/
     croma/<experiment>/<run>/       # Checkpoints, metrics, predictions and plots
@@ -56,7 +56,18 @@ These folders live under `experiments/sen1floods11/croma/`. Their results use th
 | [upernet_s1s2](experiments/sen1floods11/croma/upernet_s1s2/) | S1 and S2; UPerNet | `UperNet_head_S1S2` |
 | [exploration](experiments/sen1floods11/croma/exploration/) | Preliminary inspection | `exploration` |
 
-TerraMind Large weights are in `pretrained/terramind/`; its experiment notebooks have not been implemented yet. Reserved empty folders are local placeholders.
+TerraMind Large weights are in `pretrained/terramind/`. Its S1 FCN experiment is now prepared:
+
+- [TerraMind S1 training](experiments/sen1floods11/terramind/fcn_s1/01_terramind_on_sen1floods11_training.ipynb)
+- [TerraMind S1 evaluation](experiments/sen1floods11/terramind/fcn_s1/02_terramind_on_sen1floods11_test.ipynb)
+
+Install `terratorch==1.2.5` in the notebook kernel once (`%pip install terratorch==1.2.5`), restart the kernel, then run training and evaluation in order. TerraTorch supplies the architecture; the loops remain ordinary PyTorch. The local checkpoint is loaded with complete encoder-key/shape checks; no weights are downloaded by the notebooks.
+
+Outputs go to `runs/sen1floods11/terramind/fcn_s1/`. The experiment follows the existing CROMA S1 FCN recipe: frozen backbone, the same 1024-to-256-to-2 FCN with GroupNorm, 100 epochs, batch 16, weighted CE [1,8], AdamW/cosine warm restarts, validation each epoch and selection by validation water IoU. Evaluation keeps the same 120-pixel windows, 60-pixel stride, full split membership, pooled metrics, AW/PW/FW conventions and prediction/error plots. The test notebook discovers a completed compatible training run or accepts an explicit checkpoint.
+
+Model-specific differences are recorded rather than hidden: TerraMind uses its native S1GRD normalization and 16-pixel patches. The wrapper pads each 120-pixel crop to 128, interpolates logits to the padded extent, then crops back without resizing the labels. Its final token grid is 8x8 versus CROMA's 15x15. The frozen encoder is processed in chunks of four; the FCN still receives the full training batch. Seed, split membership/hashes, package versions and pretrained checkpoint hash are saved. Existing author/CROMA runs and notebooks are unchanged; this is a comparison of those concrete pipelines, not a claim that every input representation or historical training condition is identical.
+
+The implementation has passed a real-checkpoint CPU forward/gradient smoke check and evaluation-artifact checks. Full training/testing has not been run. The earlier project report remains a snapshot of the results available before this TerraMind addition.
 
 Experiment folders retain older protocol variants. For example, `fcn_s1` contains an older DeepLab-head training run. Original run names and metadata distinguish those runs; a folder name alone does not establish which protocol produced a result.
 
