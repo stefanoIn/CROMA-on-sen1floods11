@@ -1,61 +1,100 @@
-# CROMA experiments on Sen1Floods11
+# GeoFM experiments
 
-Two variants of the same experiment are organized by preprocessing. The folder reorganization preserved the existing calculations. The own-preprocessing variant now explicitly uses floating-point normalization without uint8 quantization, as described below.
+Experiments comparing geospatial foundation models on flood segmentation. Start with a notebook in `experiments/`; its outputs go to the matching location in `runs/`.
+
+## Folder guide
 
 ```text
-experiments/croma_sen1floods11/
-  original_preprocessing/   # Original training and test notebooks
-  own_preprocessing/        # Training-statistics preprocessing notebooks (01B / 02B)
-  exploration/              # Preliminary notebook
-src/                        # Existing Python helpers, model, and visualization code
-runs/croma_sen1floods11/
-  original_preprocessing/
-    train_<model-name>_<date>_<time>_<unique-id>/
-    test_<model-name>_<date>_<time>_<unique-id>/
-  own_preprocessing/
-    train_<model-name>_<date>_<time>_<unique-id>/
-    test_<model-name>_<date>_<time>_<unique-id>/
-reports/legacy/             # Previously saved plots from the repository root
-checkpoints/                # Existing checkpoints, kept in place
-results/                    # Existing test outputs, kept in place
-dataset/                    # Existing dataset, kept in place
-pretrained/                 # Existing CROMA weights, kept in place
+datasets/
+  sen1floods11/
+    sen1floods11_hand_labeled_only/  # Images, hand labels and official splits
+    WeaklyLabeled/                  # Weak labels and their acquisitions
+pretrained/
+  croma/                           # Downloaded CROMA backbone
+  terramind/                       # Downloaded TerraMind backbone
+  sen1floods11_authors/             # Models released by the dataset authors
+experiments/
+  sen1floods11/
+    croma/
+      fcn_s1/
+      fcn_s2/
+      linear_s1/
+      fcn_s1_own_preprocessing/
+      upernet_s1/
+      upernet_s2/
+      upernet_s1s2/
+      exploration/
+    terramind/                     # Reserved for the next experiment
+runs/
+  sen1floods11/
+    croma/<experiment>/<run>/       # Checkpoints, metrics, predictions and plots
+    terramind/                     # Future TerraMind runs
+    authors_baseline/              # Existing author-model evaluation outputs
+reports/                           # Analyses and exports
+src/                               # Python code imported by notebooks
+.geofm-root                        # Marker used to find the project root
 ```
+
+S1 means Sentinel-1 radar (VV and VH). S2 means Sentinel-2 optical imagery. S1S2 means both modalities. FCN, linear and UPerNet describe the segmentation head attached to CROMA.
+
+The physical project directory is currently `D:\UNI\CROMA_experiment`. Active notebooks use paths relative to its root.
+
+## Choose an experiment
+
+These folders live under `experiments/sen1floods11/croma/`. Their results use the identically named folder under `runs/sen1floods11/croma/`. Notebook names beginning with `01` are for training; `02` is evaluation; `00` is exploration.
+
+| Experiment | Input and purpose | Previous notebook/run folder name |
+| --- | --- | --- |
+| [fcn_s1](experiments/sen1floods11/croma/fcn_s1/) | S1; original preprocessing experiment, FCN head | `original_S1` |
+| [fcn_s2](experiments/sen1floods11/croma/fcn_s2/) | S2; FCN head | `original_S2` |
+| [linear_s1](experiments/sen1floods11/croma/linear_s1/) | S1; linear segmentation head | `linear_probing_S1` / `original_S1_linear_probing` |
+| [fcn_s1_own_preprocessing](experiments/sen1floods11/croma/fcn_s1_own_preprocessing/) | S1; FCN with normalization based on training statistics | `own_preprocessing_S1` / `original_S1_own_preprocessing` |
+| [upernet_s1](experiments/sen1floods11/croma/upernet_s1/) | S1; UPerNet | `UperNet_head_S1` |
+| [upernet_s2](experiments/sen1floods11/croma/upernet_s2/) | S2; UPerNet | `UperNet_Head_S2` |
+| [upernet_s1s2](experiments/sen1floods11/croma/upernet_s1s2/) | S1 and S2; UPerNet | `UperNet_head_S1S2` |
+| [exploration](experiments/sen1floods11/croma/exploration/) | Preliminary inspection | `exploration` |
+
+TerraMind Large weights are in `pretrained/terramind/`; its experiment notebooks have not been implemented yet. Reserved empty folders are local placeholders.
+
+Experiment folders retain older protocol variants. For example, `fcn_s1` contains an older DeepLab-head training run. Original run names and metadata distinguish those runs; a folder name alone does not establish which protocol produced a result.
 
 ## Running notebooks
 
-1. Open the training or test notebook in the appropriate preprocessing folder using your existing training environment (for example, `THESIS D RTX3070`).
-2. Run the first cell. It locates the repository using relative paths, sets the working directory to the repository root, and makes `src/` importable. This works when Jupyter starts in the repository root or the notebook directory. No machine-specific absolute paths are stored.
-3. Execute the notebook in order. A training run starts at its training-loop cell; a test run starts at its non-Bolivia evaluation cell. Re-executing that run-start cell creates a new output directory. Run the Bolivia and reporting cells afterward to keep both splits in the same test run.
-4. For evaluation of a new training run, set `checkpoint_path` in the checkpoint-loading cell to the saved `.pt` path relative to the repository root. Existing checkpoint selections have been preserved.
+1. Open the chosen training notebook with the existing Python environment containing PyTorch, TorchVision, Rasterio and the notebook dependencies.
+2. Restart the kernel and run cells in order. The first cell finds `.geofm-root` by searching parent directories and makes `src/` importable.
+3. The training-loop cell creates a fresh `train_...` folder. Its printed path identifies the checkpoint and history for that execution.
+4. Open the matching evaluation notebook. Inspect its checkpoint-selection cell and printed checkpoint path: notebooks may discover a recent checkpoint automatically or use an explicit selection.
+5. Run both non-Bolivia and Bolivia evaluation, followed by metrics and plotting cells. These save a separate `test_...` run.
 
-Changing folders does not reset model or optimizer state. Restart the kernel and run from the beginning when starting an independent training experiment.
+Each notebook contains its own scientific settings. The protocols differ between experiments; this reorganization does not standardize losses, normalization, schedules or validation frequency.
 
-**Existing notebook state:** the original-preprocessing training notebook's training loop is enclosed in a triple-quoted string and therefore disabled. This was preserved; remove those quotes when you intend to train with it. Its plotting cells depend on the training variables. The own-preprocessing test notebook requires an explicit `checkpoint_path` from a new float-preprocessing training run; it rejects checkpoints without matching preprocessing metadata.
+## Data and saved results
 
-## Run outputs
+Official hand-labelled splits live in `datasets/sen1floods11/sen1floods11_hand_labeled_only/flood_handlabeled/`: 252 training, 89 validation, 90 non-Bolivia test and 15 Bolivia test observations. Some experiments explicitly exclude unusable training samples; consult their dataset cells. Bolivia is evaluated separately.
 
-Every new training/test run folder has an experiment name in its parent path and the model name, timestamp, and unique suffix in its name. `run.json` records the experiment, model name, phase, time (including timezone), source notebook, pretrained weights, and checkpoint path. Test metadata identifies exactly which checkpoint was selected; it does not infer or change its preprocessing.
+Within `HandLabeled/`, `S1Hand/` and `S2Hand/` hold inputs, `LabelHand/` holds reference masks, and `JRCWaterHand/` supplies the permanent-water layer for AW/PW/FW analysis. Dataset contents and split filenames are preserved.
 
-- Training: best checkpoint, training history, and loss/IoU figures when their plotting cells are executed.
-- Testing: `non_bol/` and `bol/` predictions and metrics, category summary CSVs, and separate visualization files.
+Downloaded weights belong in `pretrained/<model>/`. Trained checkpoints stay inside their associated `train_...` run. Training and evaluation are separate runs, linked through the checkpoint path in `run.json`.
 
-Old outputs were not relabeled because their exact provenance cannot safely be inferred. They remain in `checkpoints/` and `results/`. New outputs are ignored by Git.
+Run contents vary by experiment: histories and checkpoints, evaluation JSON/CSV metrics, prediction rasters, and plots. Existing run names and internal file layouts are retained. Saved notebook outputs and notebook copies inside old runs are historical snapshots and may display former paths.
 
-## Adding a variant
+Distinguish pooled water IoU and binary mIoU from mean per-chip water IoU. AW, PW and FW mean all water, permanent water and flood water. Check the saved metric definitions before comparing protocols.
 
-Copy the matching pair of notebooks into a new sibling preprocessing folder. In each first cell, update `EXPERIMENT_NAME` and `NOTEBOOK_PATH` to match that variant. Use the same experiment name in its training and testing notebooks. Keep all file paths relative to the repository root. The experiment identifier separates its future runs from the other variants.
+The original `runs/sen1floods11_reproduction/` outputs are now in `runs/sen1floods11/authors_baseline/`. The corresponding experiment source notebooks were already absent before this reorganization.
 
-## Own-preprocessing float experiment
+## Shared Python code
 
-Both 01B and 02B normalize raw SAR with fixed training-channel mean +/- two standard deviations, clamp to [0, 1], and retain float32 values without uint8 conversion. Training computes statistics from finite training pixels; new checkpoints and run metadata store those statistics, the quantization setting, channel order, and nonfinite fill rule. Testing loads the statistics from the selected checkpoint, rather than hard-coding them.
+| File | Responsibility |
+| --- | --- |
+| [use_croma.py](src/use_croma.py) | CROMA architecture and pretrained-weight loading |
+| [helper.py](src/helper.py) | Original S1 data utilities and CROMA/FCN wrapper |
+| [croma_upernet_pangaea.py](src/croma_upernet_pangaea.py) | CROMA/UPerNet components and associated data utilities |
+| [segmentation_metrics.py](src/segmentation_metrics.py) | Segmentation metrics and reporting helpers |
+| [sen1floods11_visualization.py](src/sen1floods11_visualization.py) | Prediction and error-map visualization |
+| [sar_input_quality.py](src/sar_input_quality.py) | SAR input-quality checks |
 
-Restart the training kernel and run 01B from the beginning. Copy the printed checkpoint path into 02B's `checkpoint_path` setting (as a relative `Path` or string), then run 02B from the beginning. Older baseline/quantized checkpoints cannot be used as evidence for this training protocol. The pretrained CROMA backbone is reused; the segmentation head must be trained under the new protocol. Model names include `float` to distinguish new runs.
+## Adding models and datasets
 
-The upstream [CROMA README](https://github.com/antofuller/CROMA/blob/main/README.md) provides both quantized and continuous normalization branches. Its example calculates channel statistics over the supplied tensor, whereas this experiment fixes them from the training split. This is a controlled adaptation, not a claim of exact pretraining reproduction or improved performance.
+Use `experiments/<dataset>/<model>/<experiment>/`, with the same hierarchy under `runs/`. Add data under `datasets/<dataset>/` and downloaded weights under `pretrained/<model>/`. Keep the notebook's `EXPERIMENT_NAME` and `NOTEBOOK_PATH` consistent with its location.
 
-Nonfinite replacement remains NaN -> -50 and +/-Inf -> 0, consistently across training and testing. NaNs exist in all four local splits; declared SAR NoData is NaN. With these statistics, the current replacements map to extreme normalized values. Testing channel-mean replacement would be a separate experiment. Label handling, split membership, model architecture, and metric calculations remain unchanged by this normalization update.
-
-## Authors' Sen1Floods11 reproduction
-
-The four authors' distributed FCN models and the original Test_Modelsv0v0 evaluation workflow are available under [experiments/sen1floods11_reproduction/authors](experiments/sen1floods11_reproduction/authors/README.md). The completed [native-resolution visual comparison](runs/sen1floods11_reproduction/comparison_2026-10-20_18-31-06_611597_d03e130b/index.html) includes v1.0 reproduction, v1.1 comparison with CROMA, saved prediction GeoTIFFs, and separate original-notebook and integer-label metrics.
+Large local data, weights, runs and reports are excluded from Git. The local [reorganization record](reports/folder_reorganization.json) contains old-to-new paths, integrity checks and references already missing before the move. No training or metric recomputation is part of the folder reorganization.

@@ -1,4 +1,5 @@
 ﻿# Local datasets, pretrained weights, and generated experiment outputs
+# Notebooks in experiments/<dataset>/<model>/<experiment>/ are tracked.
 dataset/
 datasets/
 checkpoints/

@@ -1,5 +1,5 @@
 # Adapted from VMarsocci/pangaea-bench (GPL-3.0), pinned below.
-# The upstream source and license are retained in UperNet_head/pangaea_reference.
+# Upstream source and license: https://github.com/VMarsocci/pangaea-bench
 from pathlib import Path
 import csv
 import json
