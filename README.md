@@ -2,6 +2,8 @@
 
 Experiments comparing geospatial foundation models on flood segmentation. Start with a notebook in `experiments/`; its outputs go to the matching location in `runs/`.
 
+For the detailed notebook/source guide, saved results and metric definitions, read the [project report](reports/PROJECT_REPORT.md).
+
 ## Folder guide
 
 ```text
@@ -97,4 +99,4 @@ The original `runs/sen1floods11_reproduction/` outputs are now in `runs/sen1floo
 
 Use `experiments/<dataset>/<model>/<experiment>/`, with the same hierarchy under `runs/`. Add data under `datasets/<dataset>/` and downloaded weights under `pretrained/<model>/`. Keep the notebook's `EXPERIMENT_NAME` and `NOTEBOOK_PATH` consistent with its location.
 
-Large local data, weights, runs and reports are excluded from Git. The local [reorganization record](reports/folder_reorganization.json) contains old-to-new paths, integrity checks and references already missing before the move. No training or metric recomputation is part of the folder reorganization.
+Large local data, weights, runs and generated reports are excluded from Git. The project report linked above is tracked. The local reorganization record (`reports/folder_reorganization.json`) contains old-to-new paths, integrity checks and references already missing before the move. No training or metric recomputation is part of the folder reorganization.

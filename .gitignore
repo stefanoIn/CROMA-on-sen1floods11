@@ -5,7 +5,8 @@ datasets/
 checkpoints/
 pretrained/
 runs/
-reports/
+/reports/*
+!/reports/PROJECT_REPORT.md
 fcnn_test/
 
 # Downloaded archives and model binaries
