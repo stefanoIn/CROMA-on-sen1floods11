@@ -61,7 +61,7 @@ TerraMind Large weights are in `pretrained/terramind/`. Its S1 FCN experiment is
 - [TerraMind S1 training](experiments/sen1floods11/terramind/fcn_s1/01_terramind_on_sen1floods11_training.ipynb)
 - [TerraMind S1 evaluation](experiments/sen1floods11/terramind/fcn_s1/02_terramind_on_sen1floods11_test.ipynb)
 
-Install `terratorch==1.2.5` in the notebook kernel once (`%pip install terratorch==1.2.5`), restart the kernel, then run training and evaluation in order. TerraTorch supplies the architecture; the loops remain ordinary PyTorch. The local checkpoint is loaded with complete encoder-key/shape checks; no weights are downloaded by the notebooks.
+Install `terratorch==1.2.5` and `torchgeo==0.8.1` in the notebook kernel once (`%pip install terratorch==1.2.5 torchgeo==0.8.1`), restart the kernel, then run training and evaluation in order. TerraTorch supplies the architecture; the loops remain ordinary PyTorch. The local checkpoint is loaded with complete encoder-key/shape checks; no weights are downloaded by the notebooks.
 
 Outputs go to `runs/sen1floods11/terramind/fcn_s1/`. The experiment follows the existing CROMA S1 FCN recipe: frozen backbone, the same 1024-to-256-to-2 FCN with GroupNorm, 100 epochs, batch 16, weighted CE [1,8], AdamW/cosine warm restarts, validation each epoch and selection by validation water IoU. Evaluation keeps the same 120-pixel windows, 60-pixel stride, full split membership, pooled metrics, AW/PW/FW conventions and prediction/error plots. The test notebook discovers a completed compatible training run or accepts an explicit checkpoint.
 

@@ -154,7 +154,7 @@ The notebooks retain the CROMA S1 FCN templates' cell counts (30 training, 31 te
 
 ### Necessary model-specific differences
 
-TerraTorch supplies the TerraMind architecture; training and evaluation remain ordinary PyTorch loops. The notebooks pin `terratorch==1.2.5` and load `pretrained/terramind/TerraMind_v1_large.pt` locally. Every tensor required by the selected S1 encoder must be present with the expected shape; unused modalities and the generative decoder are excluded. No model-weight download is performed by the notebooks.
+TerraTorch supplies the TerraMind architecture; training and evaluation remain ordinary PyTorch loops. The notebooks pin `terratorch==1.2.5` and `torchgeo==0.8.1` and load `pretrained/terramind/TerraMind_v1_large.pt` locally. Every tensor required by the selected S1 encoder must be present with the expected shape; unused modalities and the generative decoder are excluded. No model-weight download is performed by the notebooks.
 
 TerraMind uses its native S1GRD normalization: VV/VH means `[-12.599, -20.293]` and standard deviations `[5.195, 5.890]`. Raw data are already in dB; the CROMA clipping/per-image normalization is not applied. Nonfinite raw values are replaced by zero. These statistics follow the [official TerraMind Sen1Floods11 configuration](https://github.com/IBM/terramind/blob/main/configs/terramind_v1_base_sen1floods11.yaml).
 
@@ -172,7 +172,9 @@ Evaluation automatically selects the latest completed compatible training run, o
 
 Verified notebook syntax and preserved cell structure; confirmed the four split counts and non-overlap. Using the actual TerraTorch 1.2.5 wheel's core model modules and local checkpoint, a real-input CPU smoke check produced finite 120 x 120 logits and gradients only for the FCN head. A separate synthetic-prediction check verified tiled coverage, ignored-label handling, raster output, metric JSON/CSVs, regional reporting and AW/PW/FW masks. These checks are not benchmark results.
 
-TerraTorch is not installed in the existing notebook environment. For model verification, its core modules were loaded in isolation from a temporary wheel, bypassing unrelated package imports; a full installed-package notebook run has not been verified. Before running, execute `%pip install terratorch==1.2.5` in the intended notebook kernel and restart it. Then run the training notebook followed by testing. No full training, full-test inference or TerraMind performance measurement has been performed.
+The initial core-model verification used an isolated wheel. After installation, a full-package import exposed a compatibility problem: TerraTorch 1.2.5 imports `torchgeo.trainers.utils`, which is absent in TorchGeo 0.10.0. TorchGeo was changed to 0.8.1 in the notebook environment after verifying that the full TerraTorch import succeeds with it. PyTorch and CUDA were not changed. Both notebooks now check the paired version pins before importing and preserve the underlying dependency error instead of incorrectly reporting that TerraTorch is missing. TorchGeo's version is also saved in new training-run metadata. A subsequent separate CPU check of the full public checkpoint loader encountered a Windows native access violation (process 34268); that verification process was stopped. The earlier isolated-core smoke check and full-package import check succeeded, but this later full-loader check did not complete. Its native-crash cause has not been established, and it was separate from the user's notebook kernel.
+
+For a fresh environment, run `%pip install terratorch==1.2.5 torchgeo==0.8.1` in the intended notebook kernel, restart it, and run training followed by testing. The existing kernel must also be restarted after the dependency fix. No full training, full-test inference or TerraMind performance measurement has been performed.
 
 ## Every module in src
 
